@@ -13,6 +13,8 @@ let state = {
     },
     pageWidth: 210,
     pageHeight: 297,
+    gutterWidth: 5,
+    margin: 10,
     selectedBlock: null,
     draggedBlock: null,
     resizingBlock: null,
@@ -101,6 +103,8 @@ function setupEventListeners() {
     document.getElementById('applyPageSettings').addEventListener('click', () => {
         state.pageWidth = parseInt(document.getElementById('pageWidth').value);
         state.pageHeight = parseInt(document.getElementById('pageHeight').value);
+        state.gutterWidth = parseInt(document.getElementById('gutterWidth').value);
+        state.margin = parseInt(document.getElementById('margin').value);
         createPages();
     });
     
@@ -109,6 +113,7 @@ function setupEventListeners() {
     document.getElementById('exportHtmlBtn').addEventListener('click', exportAllHtml);
     document.getElementById('exportPdfBtn').addEventListener('click', exportAllPdf);
     document.getElementById('resetBtn').addEventListener('click', reset);
+    document.getElementById('printGuideBtn').addEventListener('click', showPrintGuide);
     
     document.getElementById('deleteBlockBtn').addEventListener('click', deleteSelectedBlock);
     
@@ -119,6 +124,22 @@ function setupEventListeners() {
             deselectBlock();
         }
     });
+    
+    const printGuideModal = document.getElementById('printGuideModal');
+    const printGuideClose = printGuideModal.querySelector('.close');
+    printGuideClose.addEventListener('click', () => {
+        printGuideModal.classList.remove('show');
+    });
+    
+    printGuideModal.addEventListener('click', (e) => {
+        if (e.target.id === 'printGuideModal') {
+            printGuideModal.classList.remove('show');
+        }
+    });
+}
+
+function showPrintGuide() {
+    document.getElementById('printGuideModal').classList.add('show');
 }
 
 function setupTemplateDrag() {
@@ -151,11 +172,17 @@ function setupPageDropZone(container) {
         if (isNew) {
             const pageId = parseInt(container.dataset.pageId);
             const side = container.dataset.side;
-            addBlockToPage(pageId, side, type, e.offsetX, e.offsetY);
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left - 10;
+            const y = e.clientY - rect.top - 10;
+            addBlockToPage(pageId, side, type, x, y);
         } else if (state.draggedBlock) {
             const pageId = parseInt(container.dataset.pageId);
             const side = container.dataset.side;
-            moveBlockToPage(state.draggedBlock, pageId, side, e.offsetX, e.offsetY);
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left - 10;
+            const y = e.clientY - rect.top - 10;
+            moveBlockToPage(state.draggedBlock, pageId, side, x, y);
         }
     });
 }
@@ -180,6 +207,8 @@ function createBlock(type, x, y) {
         textAlign: 'left',
         imageUrl: '',
         tableData: [['表头1', '表头2'], ['内容1', '内容2']],
+        listItems: ['列表项1', '列表项2'],
+        checkboxItems: [{ text: '复选框1', checked: false }, { text: '复选框2', checked: false }],
         x: x,
         y: y,
         width: 200,
@@ -211,6 +240,14 @@ function createBlock(type, x, y) {
             block.title = '';
             block.content = '这是一段引用文字...';
             block.height = 100;
+            break;
+        case 'list':
+            block.title = '列表标题';
+            block.height = 120;
+            break;
+        case 'checkbox':
+            block.title = '复选框标题';
+            block.height = 120;
             break;
     }
     
@@ -253,41 +290,64 @@ function createBlockElement(block, pageId, side) {
     switch (block.type) {
         case 'text':
             innerHtml = `
-                <div class="block-title" style="font-size: ${block.fontSize}px">${block.title}</div>
-                <div class="block-text" style="font-size: ${block.fontSize}px; text-align: ${block.textAlign}">${block.content}</div>
+                <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
+                <div class="block-text" contenteditable="true" style="font-size: ${block.fontSize}px; text-align: ${block.textAlign}">${block.content}</div>
             `;
             break;
         case 'title':
             innerHtml = `
-                <div class="block-title" style="font-size: ${block.fontSize}px; text-align: ${block.textAlign}">${block.title}</div>
+                <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px; text-align: ${block.textAlign}">${block.title}</div>
             `;
             break;
         case 'image':
             if (block.imageUrl) {
                 innerHtml = `
-                    <div class="block-title" style="font-size: ${block.fontSize}px">${block.title}</div>
+                    <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
                     <img class="block-image" src="${block.imageUrl}" alt="">
                 `;
             } else {
                 innerHtml = `
-                    <div class="block-title" style="font-size: ${block.fontSize}px">${block.title}</div>
+                    <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
                     <div class="block-image-placeholder">点击上传图片</div>
                 `;
             }
             break;
         case 'table':
             innerHtml = `
-                <div class="block-title" style="font-size: ${block.fontSize}px">${block.title}</div>
+                <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
                 <table class="block-table">
                     ${block.tableData.map((row, i) => `
-                        <tr>${row.map(cell => i === 0 ? `<th>${cell}</th>` : `<td>${cell}</td>`).join('')}</tr>
+                        <tr>${row.map(cell => i === 0 ? `<th contenteditable="true">${cell}</th>` : `<td contenteditable="true">${cell}</td>`).join('')}</tr>
                     `).join('')}
                 </table>
             `;
             break;
         case 'quote':
             innerHtml = `
-                <div class="block-quote" style="font-size: ${block.fontSize}px">${block.content}</div>
+                <div class="block-quote" contenteditable="true" style="font-size: ${block.fontSize}px">${block.content}</div>
+            `;
+            break;
+        case 'list':
+            innerHtml = `
+                <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
+                <ul class="block-list">
+                    ${block.listItems.map(item => `<li contenteditable="true">${item}</li>`).join('')}
+                </ul>
+                <button class="add-list-item">+ 添加项</button>
+            `;
+            break;
+        case 'checkbox':
+            innerHtml = `
+                <div class="block-title" contenteditable="true" style="font-size: ${block.fontSize}px">${block.title}</div>
+                <div class="block-checkbox-list">
+                    ${block.checkboxItems.map((item, index) => `
+                        <div class="block-checkbox">
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} data-index="${index}">
+                            <span contenteditable="true">${item.text}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="add-checkbox-item">+ 添加项</button>
             `;
             break;
     }
@@ -315,7 +375,7 @@ function createBlockElement(block, pageId, side) {
     });
     
     div.addEventListener('mousedown', (e) => {
-        if (!e.target.closest('.block-delete') && !e.target.closest('.block-resize')) {
+        if (!e.target.closest('.block-delete') && !e.target.closest('.block-resize') && !e.target.closest('button')) {
             startDrag(block, pageId, side, e.clientX, e.clientY);
         }
     });
@@ -342,7 +402,74 @@ function createBlockElement(block, pageId, side) {
         });
     }
     
+    const contentEditableElements = div.querySelectorAll('[contenteditable="true"]');
+    contentEditableElements.forEach(element => {
+        element.addEventListener('blur', (e) => {
+            updateBlockContent(block, e.target, pageId, side);
+        });
+        element.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                element.blur();
+            }
+        });
+    });
+    
+    const addListItemBtn = div.querySelector('.add-list-item');
+    if (addListItemBtn) {
+        addListItemBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            block.listItems.push('新列表项');
+            renderPageBlocks(pageId, side);
+        });
+    }
+    
+    const addCheckboxItemBtn = div.querySelector('.add-checkbox-item');
+    if (addCheckboxItemBtn) {
+        addCheckboxItemBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            block.checkboxItems.push({ text: '新复选框', checked: false });
+            renderPageBlocks(pageId, side);
+        });
+    }
+    
+    const checkboxInputs = div.querySelectorAll('.block-checkbox input[type="checkbox"]');
+    checkboxInputs.forEach(input => {
+        input.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const index = parseInt(input.dataset.index);
+            if (index >= 0 && index < block.checkboxItems.length) {
+                block.checkboxItems[index].checked = input.checked;
+            }
+        });
+    });
+    
     return div;
+}
+
+function updateBlockContent(block, element, pageId, side) {
+    if (element.classList.contains('block-title')) {
+        block.title = element.textContent;
+    } else if (element.classList.contains('block-text') || element.classList.contains('block-quote')) {
+        block.content = element.textContent;
+    } else if (element.tagName === 'TH' || element.tagName === 'TD') {
+        const rowIndex = Array.from(element.parentElement.parentElement.children).indexOf(element.parentElement);
+        const cellIndex = Array.from(element.parentElement.children).indexOf(element);
+        if (rowIndex >= 0 && rowIndex < block.tableData.length && 
+            cellIndex >= 0 && cellIndex < block.tableData[rowIndex].length) {
+            block.tableData[rowIndex][cellIndex] = element.textContent;
+        }
+    } else if (element.tagName === 'LI' && element.parentElement.classList.contains('block-list')) {
+        const index = Array.from(element.parentElement.children).indexOf(element);
+        if (index >= 0 && index < block.listItems.length) {
+            block.listItems[index] = element.textContent;
+        }
+    } else if (element.tagName === 'SPAN' && element.parentElement.classList.contains('block-checkbox')) {
+        const index = Array.from(element.parentElement.parentElement.children).indexOf(element.parentElement);
+        if (index >= 0 && index < block.checkboxItems.length) {
+            block.checkboxItems[index].text = element.textContent;
+        }
+    }
 }
 
 function startDrag(block, pageId, side, clientX, clientY) {
@@ -511,6 +638,24 @@ function showBlockEditor(block) {
         `;
     }
     
+    if (block.type === 'list') {
+        html += `
+            <div class="editor-field">
+                <label>列表项 (用逗号分隔)</label>
+                <input type="text" id="editListItems" value="${block.listItems.join(', ')}">
+            </div>
+        `;
+    }
+    
+    if (block.type === 'checkbox') {
+        html += `
+            <div class="editor-field">
+                <label>复选框项 (用逗号分隔)</label>
+                <input type="text" id="editCheckboxItems" value="${block.checkboxItems.map(item => item.text).join(', ')}">
+            </div>
+        `;
+    }
+    
     html += `
         <div class="editor-field">
             <label>字体大小</label>
@@ -552,6 +697,13 @@ function showBlockEditor(block) {
             try {
                 block.tableData = JSON.parse(document.getElementById('editTableData').value);
             } catch (e) {}
+        }
+        if (document.getElementById('editListItems')) {
+            block.listItems = document.getElementById('editListItems').value.split(',').map(item => item.trim()).filter(item => item);
+        }
+        if (document.getElementById('editCheckboxItems')) {
+            const items = document.getElementById('editCheckboxItems').value.split(',').map(item => item.trim()).filter(item => item);
+            block.checkboxItems = items.map(item => ({ text: item, checked: false }));
         }
         block.fontSize = parseInt(document.getElementById('editFontSize').value);
         block.textAlign = document.getElementById('editTextAlign').value;
@@ -601,6 +753,8 @@ function saveToLocal() {
         trifold: state.trifold,
         pageWidth: state.pageWidth,
         pageHeight: state.pageHeight,
+        gutterWidth: state.gutterWidth,
+        margin: state.margin,
         blockIdCounter: state.blockIdCounter
     });
     
@@ -638,10 +792,14 @@ function loadFromLocal() {
                     };
                     state.pageWidth = data.pageWidth || 210;
                     state.pageHeight = data.pageHeight || 297;
+                    state.gutterWidth = data.gutterWidth || 5;
+                    state.margin = data.margin || 10;
                     state.blockIdCounter = data.blockIdCounter || 0;
                     
                     document.getElementById('pageWidth').value = state.pageWidth;
                     document.getElementById('pageHeight').value = state.pageHeight;
+                    document.getElementById('gutterWidth').value = state.gutterWidth;
+                    document.getElementById('margin').value = state.margin;
                     
                     createPages();
                     
@@ -715,6 +873,9 @@ function generateExportHtml(pages) {
         .block-table th,.block-table td{border:1px solid #ddd;padding:8px}
         .block-table th{background:#f5f5f5}
         .block-quote{border-left:4px solid #667eea;padding-left:16px;font-style:italic;color:#666}
+        .block-list{list-style:disc;margin-left:20px}
+        .block-list li{margin-bottom:8px}
+        .block-checkbox{margin-bottom:8px;display:flex;align-items:center;gap:8px}
     </style>
 </head>
 <body>
@@ -754,6 +915,20 @@ function renderBlockForExport(block) {
             break;
         case 'quote':
             html += `<div class="block-quote" style="font-size:${block.fontSize}px">${block.content}</div>`;
+            break;
+        case 'list':
+            html += `<div class="block-title" style="font-size:${block.fontSize}px">${block.title}</div>`;
+            html += '<ul class="block-list">';
+            block.listItems.forEach(item => {
+                html += `<li>${item}</li>`;
+            });
+            html += '</ul>';
+            break;
+        case 'checkbox':
+            html += `<div class="block-title" style="font-size:${block.fontSize}px">${block.title}</div>`;
+            block.checkboxItems.forEach(item => {
+                html += `<div class="block-checkbox"><input type="checkbox" ${item.checked ? 'checked' : ''}><span>${item.text}</span></div>`;
+            });
             break;
     }
     
@@ -845,6 +1020,32 @@ function exportPdf(pageId) {
                     doc.text(quoteLines, 20, y);
                     doc.setFont(undefined, 'normal');
                     y += (quoteLines.length * (fontSize * 0.5)) + 5;
+                    break;
+                case 'list':
+                    if (block.title) {
+                        doc.setFont(undefined, 'bold');
+                        doc.text(block.title, 10, y);
+                        doc.setFont(undefined, 'normal');
+                        y += fontSize + 5;
+                    }
+                    block.listItems.forEach(item => {
+                        doc.text(`• ${item}`, 15, y);
+                        y += fontSize * 0.8;
+                    });
+                    y += 5;
+                    break;
+                case 'checkbox':
+                    if (block.title) {
+                        doc.setFont(undefined, 'bold');
+                        doc.text(block.title, 10, y);
+                        doc.setFont(undefined, 'normal');
+                        y += fontSize + 5;
+                    }
+                    block.checkboxItems.forEach(item => {
+                        doc.text(`☐ ${item.text}`, 15, y);
+                        y += fontSize * 0.8;
+                    });
+                    y += 5;
                     break;
             }
             y += 5;

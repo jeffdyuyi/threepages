@@ -524,6 +524,135 @@ body {
     color: #888;
 }
 
+.print-guide {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.print-guide h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.guide-section {
+    margin-bottom: 30px;
+}
+
+.guide-section h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.page-layout {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.layout-front,
+.layout-back {
+    text-align: center;
+}
+
+.layout-diagram {
+    display: flex;
+    gap: 2px;
+    margin: 15px 0;
+    justify-content: center;
+}
+
+.layout-page {
+    width: 80px;
+    height: 120px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.guide-section ol,
+.guide-section ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.guide-section li {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+/* 所见即所得编辑样式 */
+.content-block [contenteditable="true"] {
+    outline: none;
+    min-height: 20px;
+}
+
+.content-block [contenteditable="true"]:focus {
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 4px;
+}
+
+/* 列表块样式 */
+.block-list {
+    list-style: disc;
+    margin-left: 20px;
+}
+
+.block-list li {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+/* 复选框样式 */
+.block-checkbox {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.block-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* 页面边缘和内缝样式 */
+.page-content {
+    position: relative;
+}
+
+.page-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 1px dashed rgba(102, 126, 234, 0.3);
+    pointer-events: none;
+}
+
+/* 新的内容块类型样式 */
+.block-list {
+    padding: 10px 0;
+}
+
+.block-list li {
+    margin-bottom: 5px;
+}
+
+.block-checkbox {
+    padding: 5px 0;
+}
+
 @media print {
     body {
         background: white;
@@ -547,5 +676,8 @@ body {
     }
     .content-block {
         border: none;
+    }
+    .page-content::before {
+        display: none;
     }
 }
