@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRPG三折页排版器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="toolbar">
+        <div class="logo" id="logo">
+            <span class="logo-text">不咕鸟</span>
+            <span class="logo-sub">TRPG三折页排版器</span>
+        </div>
+        <div class="toolbar-buttons">
+            <button id="saveBtn" title="保存到本地">💾 保存</button>
+            <button id="loadBtn" title="加载本地文件">📂 加载</button>
+            <button id="exportHtmlBtn" title="导出HTML">📄 导出HTML</button>
+            <button id="exportPdfBtn" title="导出PDF">📑 导出PDF</button>
+            <button id="addPageBtn" title="添加页面">➕ 添加页面</button>
+            <button id="resetBtn" title="重置">🔄 重置</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3>📋 页面设置</h3>
+                <div class="setting-group">
+                    <label>页面宽度</label>
+                    <input type="number" id="pageWidth" value="210" min="50" max="1000">
+                    <span class="unit">mm</span>
+                </div>
+                <div class="setting-group">
+                    <label>页面高度</label>
+                    <input type="number" id="pageHeight" value="297" min="50" max="1000">
+                    <span class="unit">mm</span>
+                </div>
+                <div class="setting-group">
+                    <label>页面数量</label>
+                    <input type="number" id="pageCount" value="3" min="1" max="10">
+                </div>
+                <button id="applyPageSettings" class="apply-btn">应用设置</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>🎨 内容块</h3>
+                <div class="block-templates">
+                    <div class="template-block" draggable="true" data-type="text">
+                        <div class="template-icon">📝</div>
+                        <div class="template-name">文本块</div>
+                    </div>
+                    <div class="template-block" draggable="true" data-type="title">
+                        <div class="template-icon">🏷️</div>
+                        <div class="template-name">标题块</div>
+                    </div>
+                    <div class="template-block" draggable="true" data-type="image">
+                        <div class="template-icon">🖼️</div>
+                        <div class="template-name">图片块</div>
+                    </div>
+                    <div class="template-block" draggable="true" data-type="table">
+                        <div class="template-icon">📊</div>
+                        <div class="template-name">表格块</div>
+                    </div>
+                    <div class="template-block" draggable="true" data-type="quote">
+                        <div class="template-icon">💬</div>
+                        <div class="template-name">引用块</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="blockEditor" style="display: none;">
+                <h3>✏️ 编辑块</h3>
+                <div id="editorContent"></div>
+                <button id="deleteBlockBtn" class="delete-btn">删除块</button>
+            </div>
+        </aside>
+
+        <main class="workspace">
+            <div class="pages-container" id="pagesContainer"></div>
+        </main>
+    </div>
+
+    <div class="modal" id="authorModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="author-info">
+                <h2>🎉 关于作者</h2>
+                <div class="author-card">
+                    <p><strong>作者：</strong>不咕鸟（基德）+ AI辅助</p>
+                    <p><strong>微信：</strong>jeffyuyi</p>
+                    <p><strong>QQ群：</strong>261751459</p>
+                    <p class="club-name">不咕鸟TRPG创想俱乐部</p>
+                </div>
+                <div class="qr-placeholder">
+                    <p>扫码加入我们！</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
