@@ -45,10 +45,11 @@
 2. 开始创作你的TRPG三折页！
 
 ### 部署到GitHub Pages
-1. 将这三个文件上传到你的GitHub仓库
-2. 在仓库设置中启用GitHub Pages
-3. 选择main分支作为源
-4. 稍等几分钟，你的应用就可以在线访问了！
+1. 访问新的GitHub仓库：[https://github.com/jeffdyuyi/threepages](https://github.com/jeffdyuyi/threepages)
+2. 将这四个文件上传到仓库
+3. 在仓库设置中启用GitHub Pages
+4. 选择main分支作为源
+5. 稍等几分钟，你的应用就可以在线访问了！
 
 ## 文件说明
 - `index.html` - 主HTML文件
