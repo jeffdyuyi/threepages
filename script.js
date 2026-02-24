@@ -1,18 +1,16 @@
 let state = {
     trifold: {
         front: [
-            { id: 0, blocks: [] },
-            { id: 1, blocks: [] },
-            { id: 2, blocks: [] }
+            { id: 0, blocks: [], width: 210, height: 297 },
+            { id: 1, blocks: [], width: 210, height: 297 },
+            { id: 2, blocks: [], width: 210, height: 297 }
         ],
         back: [
-            { id: 3, blocks: [] },
-            { id: 4, blocks: [] },
-            { id: 5, blocks: [] }
+            { id: 3, blocks: [], width: 210, height: 297 },
+            { id: 4, blocks: [], width: 210, height: 297 },
+            { id: 5, blocks: [], width: 210, height: 297 }
         ]
     },
-    pageWidth: 210,
-    pageHeight: 297,
     gutterWidth: 5,
     margin: 10,
     selectedBlock: null,
@@ -56,6 +54,12 @@ function createPageElement(pageData, side) {
     header.innerHTML = `
         <span>第 ${pageData.id + 1} 页</span>
         <div class="page-actions">
+            <div class="page-size-controls">
+                <input type="number" class="page-width-input" value="${pageData.width}" min="50" max="1000">
+                <span>×</span>
+                <input type="number" class="page-height-input" value="${pageData.height}" min="50" max="1000">
+                <span>mm</span>
+            </div>
             <button class="export-page-btn" data-page-id="${pageData.id}">📄 导出HTML</button>
             <button class="export-page-pdf-btn" data-page-id="${pageData.id}">📑 导出PDF</button>
         </div>
@@ -71,17 +75,36 @@ function createPageElement(pageData, side) {
     
     setupPageDropZone(content);
     
+    const widthInput = header.querySelector('.page-width-input');
+    const heightInput = header.querySelector('.page-height-input');
+    
+    widthInput.addEventListener('change', (e) => {
+        pageData.width = parseInt(e.target.value);
+        updatePageSizes();
+    });
+    
+    heightInput.addEventListener('change', (e) => {
+        pageData.height = parseInt(e.target.value);
+        updatePageSizes();
+    });
+    
     return page;
 }
 
 function updatePageSizes() {
     const pages = document.querySelectorAll('.page');
-    const pxWidth = state.pageWidth * 3.78;
-    const pxHeight = state.pageHeight * 3.78;
     
     pages.forEach(page => {
-        page.style.width = `${pxWidth}px`;
-        page.style.minHeight = `${pxHeight}px`;
+        const pageId = parseInt(page.dataset.pageId);
+        const side = page.dataset.side;
+        const pageData = getPageData(pageId, side);
+        
+        if (pageData) {
+            const pxWidth = pageData.width * 3.78;
+            const pxHeight = pageData.height * 3.78;
+            page.style.width = `${pxWidth}px`;
+            page.style.minHeight = `${pxHeight}px`;
+        }
     });
 }
 
@@ -101,8 +124,6 @@ function setupEventListeners() {
     });
     
     document.getElementById('applyPageSettings').addEventListener('click', () => {
-        state.pageWidth = parseInt(document.getElementById('pageWidth').value);
-        state.pageHeight = parseInt(document.getElementById('pageHeight').value);
         state.gutterWidth = parseInt(document.getElementById('gutterWidth').value);
         state.margin = parseInt(document.getElementById('margin').value);
         createPages();
@@ -751,8 +772,6 @@ function deleteSelectedBlock() {
 function saveToLocal() {
     const data = JSON.stringify({
         trifold: state.trifold,
-        pageWidth: state.pageWidth,
-        pageHeight: state.pageHeight,
         gutterWidth: state.gutterWidth,
         margin: state.margin,
         blockIdCounter: state.blockIdCounter
@@ -780,24 +799,30 @@ function loadFromLocal() {
                     const data = JSON.parse(e.target.result);
                     state.trifold = data.trifold || {
                         front: [
-                            { id: 0, blocks: [] },
-                            { id: 1, blocks: [] },
-                            { id: 2, blocks: [] }
+                            { id: 0, blocks: [], width: 210, height: 297 },
+                            { id: 1, blocks: [], width: 210, height: 297 },
+                            { id: 2, blocks: [], width: 210, height: 297 }
                         ],
                         back: [
-                            { id: 3, blocks: [] },
-                            { id: 4, blocks: [] },
-                            { id: 5, blocks: [] }
+                            { id: 3, blocks: [], width: 210, height: 297 },
+                            { id: 4, blocks: [], width: 210, height: 297 },
+                            { id: 5, blocks: [], width: 210, height: 297 }
                         ]
                     };
-                    state.pageWidth = data.pageWidth || 210;
-                    state.pageHeight = data.pageHeight || 297;
+                    
+                    // 为每个页面添加宽度和高度属性（如果不存在）
+                    state.trifold.front.forEach(page => {
+                        if (!page.width) page.width = 210;
+                        if (!page.height) page.height = 297;
+                    });
+                    state.trifold.back.forEach(page => {
+                        if (!page.width) page.width = 210;
+                        if (!page.height) page.height = 297;
+                    });
                     state.gutterWidth = data.gutterWidth || 5;
                     state.margin = data.margin || 10;
                     state.blockIdCounter = data.blockIdCounter || 0;
                     
-                    document.getElementById('pageWidth').value = state.pageWidth;
-                    document.getElementById('pageHeight').value = state.pageHeight;
                     document.getElementById('gutterWidth').value = state.gutterWidth;
                     document.getElementById('margin').value = state.margin;
                     
@@ -848,8 +873,8 @@ function exportHtml(pageId) {
 function generateExportHtml(pages) {
     let blocksHtml = '';
     pages.forEach(pageData => {
-        const pxWidth = state.pageWidth * 3.78;
-        const pxHeight = state.pageHeight * 3.78;
+        const pxWidth = pageData.width * 3.78;
+        const pxHeight = pageData.height * 3.78;
         
         blocksHtml += '<div style="width:' + pxWidth + 'px; min-height:' + pxHeight + 'px; background:white; box-shadow:0 0 10px rgba(0,0,0,0.1); margin:20px; padding:20px; page-break-after:always;">';
         pageData.blocks.forEach(block => {
@@ -950,14 +975,17 @@ function exportPdf(pageId) {
         if (page) pagesToExport = [page];
     }
     
+    if (pagesToExport.length === 0) return;
+    
+    const firstPage = pagesToExport[0];
     const doc = new jsPDF({
         unit: 'mm',
-        format: [state.pageWidth, state.pageHeight]
+        format: [firstPage.width, firstPage.height]
     });
     
     pagesToExport.forEach((pageData, pageIdx) => {
         if (pageIdx > 0) {
-            doc.addPage([state.pageWidth, state.pageHeight]);
+            doc.addPage([pageData.width, pageData.height]);
         }
         let y = 10;
         pageData.blocks.forEach(block => {
@@ -973,7 +1001,7 @@ function exportPdf(pageId) {
                         y += fontSize + 2;
                     }
                     if (block.content) {
-                        const lines = doc.splitTextToSize(block.content, state.pageWidth - 20);
+                        const lines = doc.splitTextToSize(block.content, pageData.width - 20);
                         doc.text(lines, 10, y);
                         y += (lines.length * (fontSize * 0.5)) + 5;
                     }
@@ -981,9 +1009,9 @@ function exportPdf(pageId) {
                 case 'title':
                     doc.setFont(undefined, 'bold');
                     if (block.textAlign === 'center') {
-                        doc.text(block.title, state.pageWidth / 2, y, { align: 'center' });
+                        doc.text(block.title, pageData.width / 2, y, { align: 'center' });
                     } else if (block.textAlign === 'right') {
-                        doc.text(block.title, state.pageWidth - 10, y, { align: 'right' });
+                        doc.text(block.title, pageData.width - 10, y, { align: 'right' });
                     } else {
                         doc.text(block.title, 10, y);
                     }
@@ -999,7 +1027,7 @@ function exportPdf(pageId) {
                     }
                     if (block.imageUrl) {
                         try {
-                            doc.addImage(block.imageUrl, 'JPEG', 10, y, state.pageWidth - 20, 50);
+                            doc.addImage(block.imageUrl, 'JPEG', 10, y, pageData.width - 20, 50);
                             y += 55;
                         } catch (e) {}
                     }
@@ -1016,7 +1044,7 @@ function exportPdf(pageId) {
                     break;
                 case 'quote':
                     doc.setFont(undefined, 'italic');
-                    const quoteLines = doc.splitTextToSize(block.content, state.pageWidth - 30);
+                    const quoteLines = doc.splitTextToSize(block.content, pageData.width - 30);
                     doc.text(quoteLines, 20, y);
                     doc.setFont(undefined, 'normal');
                     y += (quoteLines.length * (fontSize * 0.5)) + 5;
@@ -1059,14 +1087,14 @@ function reset() {
     if (confirm('确定要重置吗？所有内容将被清除！')) {
         state.trifold = {
             front: [
-                { id: 0, blocks: [] },
-                { id: 1, blocks: [] },
-                { id: 2, blocks: [] }
+                { id: 0, blocks: [], width: 210, height: 297 },
+                { id: 1, blocks: [], width: 210, height: 297 },
+                { id: 2, blocks: [], width: 210, height: 297 }
             ],
             back: [
-                { id: 3, blocks: [] },
-                { id: 4, blocks: [] },
-                { id: 5, blocks: [] }
+                { id: 3, blocks: [], width: 210, height: 297 },
+                { id: 4, blocks: [], width: 210, height: 297 },
+                { id: 5, blocks: [], width: 210, height: 297 }
             ]
         };
         state.blockIdCounter = 0;
@@ -1087,17 +1115,6 @@ function getPageData(pageId, side) {
 
 function getPageDataById(pageId) {
     return [...state.trifold.front, ...state.trifold.back].find(p => p.id === pageId);
-}
-
-function updatePageSizes() {
-    const pages = document.querySelectorAll('.page');
-    const pxWidth = state.pageWidth * 3.78;
-    const pxHeight = state.pageHeight * 3.78;
-    
-    pages.forEach(page => {
-        page.style.width = `${pxWidth}px`;
-        page.style.minHeight = `${pxHeight}px`;
-    });
 }
 
 document.addEventListener('click', (e) => {

@@ -27,16 +27,6 @@
             <div class="sidebar-section">
                 <h3>📋 页面设置</h3>
                 <div class="setting-group">
-                    <label>页面宽度</label>
-                    <input type="number" id="pageWidth" value="210" min="50" max="1000">
-                    <span class="unit">mm</span>
-                </div>
-                <div class="setting-group">
-                    <label>页面高度</label>
-                    <input type="number" id="pageHeight" value="297" min="50" max="1000">
-                    <span class="unit">mm</span>
-                </div>
-                <div class="setting-group">
                     <label>内缝宽度</label>
                     <input type="number" id="gutterWidth" value="5" min="0" max="50">
                     <span class="unit">mm</span>
@@ -46,6 +36,7 @@
                     <input type="number" id="margin" value="10" min="0" max="100">
                     <span class="unit">mm</span>
                 </div>
+                <p class="setting-hint">提示：每个页面的大小可在页面头部单独调整</p>
                 <button id="applyPageSettings" class="apply-btn">应用设置</button>
             </div>
 

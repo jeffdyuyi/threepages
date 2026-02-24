@@ -134,6 +134,16 @@ body {
     transform: translateY(-2px);
 }
 
+.setting-hint {
+    font-size: 12px;
+    color: #666;
+    margin: 10px 0;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    text-align: center;
+}
+
 .block-templates {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -238,7 +248,28 @@ body {
 
 .page-actions {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-size-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.page-size-controls input {
+    width: 60px;
+    padding: 2px 4px;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.page-size-controls span {
+    color: white;
+    font-size: 12px;
 }
 
 .page-actions button {
