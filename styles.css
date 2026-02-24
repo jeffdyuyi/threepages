@@ -173,14 +173,49 @@ body {
 .workspace {
     flex: 1;
     overflow: auto;
-    padding: 40px;
+    padding: 20px;
+}
+
+.trifold-container {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    padding: 20px;
+}
+
+.trifold-side {
+    flex: 1;
+    min-width: 300px;
+}
+
+.trifold-side h3 {
+    text-align: center;
+    color: white;
+    margin-bottom: 20px;
+    font-size: 18px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .pages-container {
     display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
     justify-content: center;
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+@media (max-width: 1200px) {
+    .trifold-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .pages-container {
+        flex-wrap: wrap;
+    }
 }
 
 .page {
@@ -235,6 +270,67 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    min-width: 100px;
+    min-height: 50px;
+}
+
+.content-block.dragging {
+    position: absolute;
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+.content-block .block-delete {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.content-block:hover .block-delete,
+.content-block.selected .block-delete {
+    opacity: 1;
+}
+
+.content-block .block-resize {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    background: #667eea;
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: nwse-resize;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+.content-block:hover .block-resize,
+.content-block.selected .block-resize {
+    opacity: 1;
+}
+
+.page-content {
+    position: relative;
+    flex: 1;
+    padding: 20px;
+    min-height: 200px;
+    overflow-y: auto;
 }
 
 .content-block:hover {

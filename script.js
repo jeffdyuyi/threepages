@@ -1,36 +1,53 @@
 let state = {
-    pages: [],
+    trifold: {
+        front: [
+            { id: 0, blocks: [] },
+            { id: 1, blocks: [] },
+            { id: 2, blocks: [] }
+        ],
+        back: [
+            { id: 3, blocks: [] },
+            { id: 4, blocks: [] },
+            { id: 5, blocks: [] }
+        ]
+    },
     pageWidth: 210,
     pageHeight: 297,
     selectedBlock: null,
     draggedBlock: null,
+    resizingBlock: null,
     blockIdCounter: 0
 };
 
 function init() {
-    createPages(3);
+    createPages();
     setupEventListeners();
 }
 
-function createPages(count) {
-    const container = document.getElementById('pagesContainer');
-    container.innerHTML = '';
-    state.pages = [];
+function createPages() {
+    const frontContainer = document.getElementById('frontPages');
+    const backContainer = document.getElementById('backPages');
+    frontContainer.innerHTML = '';
+    backContainer.innerHTML = '';
     
-    for (let i = 0; i < count; i++) {
-        const pageData = { id: i, blocks: [] };
-        state.pages.push(pageData);
-        const pageEl = createPageElement(pageData);
-        container.appendChild(pageEl);
-    }
+    state.trifold.front.forEach(pageData => {
+        const pageEl = createPageElement(pageData, 'front');
+        frontContainer.appendChild(pageEl);
+    });
+    
+    state.trifold.back.forEach(pageData => {
+        const pageEl = createPageElement(pageData, 'back');
+        backContainer.appendChild(pageEl);
+    });
     
     updatePageSizes();
 }
 
-function createPageElement(pageData) {
+function createPageElement(pageData, side) {
     const page = document.createElement('div');
     page.className = 'page';
     page.dataset.pageId = pageData.id;
+    page.dataset.side = side;
     
     const header = document.createElement('div');
     header.className = 'page-header';
@@ -39,13 +56,13 @@ function createPageElement(pageData) {
         <div class="page-actions">
             <button class="export-page-btn" data-page-id="${pageData.id}">📄 导出HTML</button>
             <button class="export-page-pdf-btn" data-page-id="${pageData.id}">📑 导出PDF</button>
-            <button class="delete-page-btn" data-page-id="${pageData.id}">🗑️</button>
         </div>
     `;
     
     const content = document.createElement('div');
     content.className = 'page-content';
     content.dataset.pageId = pageData.id;
+    content.dataset.side = side;
     
     page.appendChild(header);
     page.appendChild(content);
@@ -84,17 +101,7 @@ function setupEventListeners() {
     document.getElementById('applyPageSettings').addEventListener('click', () => {
         state.pageWidth = parseInt(document.getElementById('pageWidth').value);
         state.pageHeight = parseInt(document.getElementById('pageHeight').value);
-        const count = parseInt(document.getElementById('pageCount').value);
-        createPages(count);
-    });
-    
-    document.getElementById('addPageBtn').addEventListener('click', () => {
-        const newId = state.pages.length;
-        const pageData = { id: newId, blocks: [] };
-        state.pages.push(pageData);
-        const container = document.getElementById('pagesContainer');
-        container.appendChild(createPageElement(pageData));
-        updatePageSizes();
+        createPages();
     });
     
     document.getElementById('saveBtn').addEventListener('click', saveToLocal);
@@ -143,21 +150,26 @@ function setupPageDropZone(container) {
         
         if (isNew) {
             const pageId = parseInt(container.dataset.pageId);
-            addBlockToPage(pageId, type);
+            const side = container.dataset.side;
+            addBlockToPage(pageId, side, type, e.offsetX, e.offsetY);
+        } else if (state.draggedBlock) {
+            const pageId = parseInt(container.dataset.pageId);
+            const side = container.dataset.side;
+            moveBlockToPage(state.draggedBlock, pageId, side, e.offsetX, e.offsetY);
         }
     });
 }
 
-function addBlockToPage(pageId, type) {
-    const pageData = state.pages.find(p => p.id === pageId);
+function addBlockToPage(pageId, side, type, x = 20, y = 20) {
+    const pageData = getPageData(pageId, side);
     if (!pageData) return;
     
-    const block = createBlock(type);
+    const block = createBlock(type, x, y);
     pageData.blocks.push(block);
-    renderPageBlocks(pageId);
+    renderPageBlocks(pageId, side);
 }
 
-function createBlock(type) {
+function createBlock(type, x, y) {
     const id = ++state.blockIdCounter;
     const block = {
         id,
@@ -167,53 +179,74 @@ function createBlock(type) {
         fontSize: 14,
         textAlign: 'left',
         imageUrl: '',
-        tableData: [['表头1', '表头2'], ['内容1', '内容2']]
+        tableData: [['表头1', '表头2'], ['内容1', '内容2']],
+        x: x,
+        y: y,
+        width: 200,
+        height: 100
     };
     
     switch (type) {
         case 'text':
             block.title = '文本标题';
             block.content = '在这里输入文本内容...';
+            block.height = 150;
             break;
         case 'title':
             block.title = '大标题';
             block.fontSize = 24;
+            block.height = 60;
             break;
         case 'image':
             block.title = '图片标题';
+            block.width = 250;
+            block.height = 150;
             break;
         case 'table':
             block.title = '表格标题';
+            block.width = 280;
+            block.height = 120;
             break;
         case 'quote':
             block.title = '';
             block.content = '这是一段引用文字...';
+            block.height = 100;
             break;
     }
     
     return block;
 }
 
-function renderPageBlocks(pageId) {
-    const pageData = state.pages.find(p => p.id === pageId);
+function renderPageBlocks(pageId, side) {
+    const pageData = getPageData(pageId, side);
     if (!pageData) return;
     
-    const container = document.querySelector(`.page-content[data-page-id="${pageId}"]`);
+    const container = document.querySelector(`.page-content[data-page-id="${pageId}"][data-side="${side}"]`);
+    if (!container) return;
+    
     container.innerHTML = '';
     
-    pageData.blocks.forEach((block, index) => {
-        const blockEl = createBlockElement(block, pageId, index);
+    pageData.blocks.forEach(block => {
+        const blockEl = createBlockElement(block, pageId, side);
         container.appendChild(blockEl);
     });
 }
 
-function createBlockElement(block, pageId, index) {
+function createBlockElement(block, pageId, side) {
     const div = document.createElement('div');
     div.className = 'content-block';
     div.dataset.blockId = block.id;
     div.dataset.pageId = pageId;
-    div.dataset.index = index;
-    div.draggable = true;
+    div.dataset.side = side;
+    
+    div.style.position = 'absolute';
+    div.style.left = `${block.x}px`;
+    div.style.top = `${block.y}px`;
+    div.style.width = `${block.width}px`;
+    div.style.height = `${block.height}px`;
+    div.style.minWidth = '100px';
+    div.style.minHeight = '50px';
+    div.style.overflow = 'auto';
     
     let innerHtml = '';
     
@@ -259,43 +292,31 @@ function createBlockElement(block, pageId, index) {
             break;
     }
     
+    innerHtml += '<button class="block-delete">×</button>';
+    innerHtml += '<div class="block-resize"></div>';
+    
     div.innerHTML = innerHtml;
+    
+    const deleteBtn = div.querySelector('.block-delete');
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteBlock(block, pageId, side);
+    });
+    
+    const resizeHandle = div.querySelector('.block-resize');
+    resizeHandle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startResize(block, e.clientX, e.clientY);
+    });
     
     div.addEventListener('click', (e) => {
         e.stopPropagation();
         selectBlock(block);
     });
     
-    div.addEventListener('dragstart', (e) => {
-        e.stopPropagation();
-        state.draggedBlock = { block, pageId, index };
-        div.classList.add('dragging');
-    });
-    
-    div.addEventListener('dragend', () => {
-        div.classList.remove('dragging');
-        state.draggedBlock = null;
-    });
-    
-    div.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (state.draggedBlock && state.draggedBlock.block.id !== block.id) {
-            div.classList.add('drag-over');
-        }
-    });
-    
-    div.addEventListener('dragleave', () => {
-        div.classList.remove('drag-over');
-    });
-    
-    div.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        div.classList.remove('drag-over');
-        
-        if (state.draggedBlock) {
-            moveBlock(state.draggedBlock, pageId, index);
+    div.addEventListener('mousedown', (e) => {
+        if (!e.target.closest('.block-delete') && !e.target.closest('.block-resize')) {
+            startDrag(block, pageId, side, e.clientX, e.clientY);
         }
     });
     
@@ -312,7 +333,7 @@ function createBlockElement(block, pageId, index) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         block.imageUrl = e.target.result;
-                        renderPageBlocks(pageId);
+                        renderPageBlocks(pageId, side);
                     };
                     reader.readAsDataURL(file);
                 }
@@ -324,24 +345,108 @@ function createBlockElement(block, pageId, index) {
     return div;
 }
 
-function moveBlock(from, toPageId, toIndex) {
-    const fromPage = state.pages.find(p => p.id === from.pageId);
-    const toPage = state.pages.find(p => p.id === toPageId);
+function startDrag(block, pageId, side, clientX, clientY) {
+    state.draggedBlock = {
+        block,
+        pageId,
+        side,
+        startX: clientX - block.x,
+        startY: clientY - block.y
+    };
     
-    if (!fromPage || !toPage) return;
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', stopDrag);
+}
+
+function onDrag(e) {
+    if (!state.draggedBlock) return;
     
-    const [movedBlock] = fromPage.blocks.splice(from.index, 1);
+    const { block, pageId, side, startX, startY } = state.draggedBlock;
+    const newX = e.clientX - startX;
+    const newY = e.clientY - startY;
     
-    if (from.pageId === toPageId && from.index < toIndex) {
-        toPage.blocks.splice(toIndex - 1, 0, movedBlock);
-    } else {
-        toPage.blocks.splice(toIndex, 0, movedBlock);
+    const pageEl = document.querySelector(`.page-content[data-page-id="${pageId}"][data-side="${side}"]`);
+    if (pageEl) {
+        const rect = pageEl.getBoundingClientRect();
+        const maxX = rect.width - block.width;
+        const maxY = rect.height - block.height;
+        
+        block.x = Math.max(0, Math.min(newX, maxX));
+        block.y = Math.max(0, Math.min(newY, maxY));
+        
+        renderPageBlocks(pageId, side);
     }
+}
+
+function stopDrag() {
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', stopDrag);
+    state.draggedBlock = null;
+}
+
+function startResize(block, clientX, clientY) {
+    state.resizingBlock = {
+        block,
+        startX: clientX,
+        startY: clientY,
+        startWidth: block.width,
+        startHeight: block.height
+    };
     
-    renderPageBlocks(from.pageId);
-    if (from.pageId !== toPageId) {
-        renderPageBlocks(toPageId);
+    document.addEventListener('mousemove', onResize);
+    document.addEventListener('mouseup', stopResize);
+}
+
+function onResize(e) {
+    if (!state.resizingBlock) return;
+    
+    const { block, startX, startY, startWidth, startHeight } = state.resizingBlock;
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    block.width = Math.max(100, startWidth + deltaX);
+    block.height = Math.max(50, startHeight + deltaY);
+    
+    const blockEl = document.querySelector(`.content-block[data-block-id="${block.id}"]`);
+    if (blockEl) {
+        const pageId = parseInt(blockEl.dataset.pageId);
+        const side = blockEl.dataset.side;
+        const pageEl = document.querySelector(`.page-content[data-page-id="${pageId}"][data-side="${side}"]`);
+        if (pageEl) {
+            const rect = pageEl.getBoundingClientRect();
+            const maxX = rect.width - block.x;
+            const maxY = rect.height - block.y;
+            
+            block.width = Math.min(block.width, maxX);
+            block.height = Math.min(block.height, maxY);
+        }
+        
+        renderPageBlocks(parseInt(blockEl.dataset.pageId), blockEl.dataset.side);
     }
+}
+
+function stopResize() {
+    document.removeEventListener('mousemove', onResize);
+    document.removeEventListener('mouseup', stopResize);
+    state.resizingBlock = null;
+}
+
+function moveBlockToPage(fromBlock, toPageId, toSide, x, y) {
+    const fromPageData = getPageData(fromBlock.pageId, fromBlock.side);
+    const toPageData = getPageData(toPageId, toSide);
+    
+    if (!fromPageData || !toPageData) return;
+    
+    const blockIndex = fromPageData.blocks.findIndex(b => b.id === fromBlock.block.id);
+    if (blockIndex === -1) return;
+    
+    const [movedBlock] = fromPageData.blocks.splice(blockIndex, 1);
+    movedBlock.x = x;
+    movedBlock.y = y;
+    toPageData.blocks.push(movedBlock);
+    
+    renderPageBlocks(fromBlock.pageId, fromBlock.side);
+    renderPageBlocks(toPageId, toSide);
 }
 
 function selectBlock(block) {
@@ -419,6 +524,22 @@ function showBlockEditor(block) {
                 <option value="right" ${block.textAlign === 'right' ? 'selected' : ''}>右对齐</option>
             </select>
         </div>
+        <div class="editor-field">
+            <label>位置 X</label>
+            <input type="number" id="editX" value="${block.x}" min="0">
+        </div>
+        <div class="editor-field">
+            <label>位置 Y</label>
+            <input type="number" id="editY" value="${block.y}" min="0">
+        </div>
+        <div class="editor-field">
+            <label>宽度</label>
+            <input type="number" id="editWidth" value="${block.width}" min="100">
+        </div>
+        <div class="editor-field">
+            <label>高度</label>
+            <input type="number" id="editHeight" value="${block.height}" min="50">
+        </div>
     `;
     
     content.innerHTML = html;
@@ -434,11 +555,16 @@ function showBlockEditor(block) {
         }
         block.fontSize = parseInt(document.getElementById('editFontSize').value);
         block.textAlign = document.getElementById('editTextAlign').value;
+        block.x = parseInt(document.getElementById('editX').value);
+        block.y = parseInt(document.getElementById('editY').value);
+        block.width = parseInt(document.getElementById('editWidth').value);
+        block.height = parseInt(document.getElementById('editHeight').value);
         
         const selectedEl = document.querySelector('.content-block.selected');
         if (selectedEl) {
             const pageId = parseInt(selectedEl.dataset.pageId);
-            renderPageBlocks(pageId);
+            const side = selectedEl.dataset.side;
+            renderPageBlocks(pageId, side);
             selectBlock(block);
         }
     };
@@ -449,25 +575,30 @@ function showBlockEditor(block) {
     });
 }
 
+function deleteBlock(block, pageId, side) {
+    const pageData = getPageData(pageId, side);
+    if (pageData) {
+        pageData.blocks = pageData.blocks.filter(b => b.id !== block.id);
+        renderPageBlocks(pageId, side);
+    }
+    deselectBlock();
+}
+
 function deleteSelectedBlock() {
     if (!state.selectedBlock) return;
     
     const selectedEl = document.querySelector('.content-block.selected');
     if (selectedEl) {
         const pageId = parseInt(selectedEl.dataset.pageId);
-        const index = parseInt(selectedEl.dataset.index);
-        const pageData = state.pages.find(p => p.id === pageId);
-        if (pageData) {
-            pageData.blocks.splice(index, 1);
-            renderPageBlocks(pageId);
-        }
+        const side = selectedEl.dataset.side;
+        deleteBlock(state.selectedBlock, pageId, side);
     }
     deselectBlock();
 }
 
 function saveToLocal() {
     const data = JSON.stringify({
-        pages: state.pages,
+        trifold: state.trifold,
         pageWidth: state.pageWidth,
         pageHeight: state.pageHeight,
         blockIdCounter: state.blockIdCounter
@@ -493,21 +624,34 @@ function loadFromLocal() {
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    state.pages = data.pages || [];
+                    state.trifold = data.trifold || {
+                        front: [
+                            { id: 0, blocks: [] },
+                            { id: 1, blocks: [] },
+                            { id: 2, blocks: [] }
+                        ],
+                        back: [
+                            { id: 3, blocks: [] },
+                            { id: 4, blocks: [] },
+                            { id: 5, blocks: [] }
+                        ]
+                    };
                     state.pageWidth = data.pageWidth || 210;
                     state.pageHeight = data.pageHeight || 297;
                     state.blockIdCounter = data.blockIdCounter || 0;
                     
                     document.getElementById('pageWidth').value = state.pageWidth;
                     document.getElementById('pageHeight').value = state.pageHeight;
-                    document.getElementById('pageCount').value = state.pages.length;
                     
-                    const container = document.getElementById('pagesContainer');
-                    container.innerHTML = '';
-                    state.pages.forEach(pageData => {
-                        container.appendChild(createPageElement(pageData));
-                        renderPageBlocks(pageData.id);
+                    createPages();
+                    
+                    state.trifold.front.forEach(pageData => {
+                        renderPageBlocks(pageData.id, 'front');
                     });
+                    state.trifold.back.forEach(pageData => {
+                        renderPageBlocks(pageData.id, 'back');
+                    });
+                    
                     updatePageSizes();
                 } catch (err) {
                     alert('加载失败：' + err.message);
@@ -524,7 +668,13 @@ function exportAllHtml() {
 }
 
 function exportHtml(pageId) {
-    let pagesToExport = pageId !== null ? [state.pages.find(p => p.id === pageId)] : state.pages;
+    let pagesToExport = [];
+    if (pageId === null) {
+        pagesToExport = [...state.trifold.front, ...state.trifold.back];
+    } else {
+        const page = getPageDataById(pageId);
+        if (page) pagesToExport = [page];
+    }
     
     const htmlContent = generateExportHtml(pagesToExport);
     
@@ -617,7 +767,13 @@ function exportAllPdf() {
 
 function exportPdf(pageId) {
     const { jsPDF } = window.jspdf;
-    const pagesToExport = pageId !== null ? [state.pages.find(p => p.id === pageId)] : state.pages;
+    let pagesToExport = [];
+    if (pageId === null) {
+        pagesToExport = [...state.trifold.front, ...state.trifold.back];
+    } else {
+        const page = getPageDataById(pageId);
+        if (page) pagesToExport = [page];
+    }
     
     const doc = new jsPDF({
         unit: 'mm',
@@ -700,33 +856,50 @@ function exportPdf(pageId) {
 
 function reset() {
     if (confirm('确定要重置吗？所有内容将被清除！')) {
-        state.pages = [];
+        state.trifold = {
+            front: [
+                { id: 0, blocks: [] },
+                { id: 1, blocks: [] },
+                { id: 2, blocks: [] }
+            ],
+            back: [
+                { id: 3, blocks: [] },
+                { id: 4, blocks: [] },
+                { id: 5, blocks: [] }
+            ]
+        };
         state.blockIdCounter = 0;
         state.selectedBlock = null;
-        createPages(3);
+        createPages();
         deselectBlock();
     }
 }
 
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('delete-page-btn')) {
-        const pageId = parseInt(e.target.dataset.pageId);
-        if (state.pages.length > 1) {
-            state.pages = state.pages.filter(p => p.id !== pageId);
-            state.pages.forEach((p, i) => p.id = i);
-            const container = document.getElementById('pagesContainer');
-            container.innerHTML = '';
-            state.pages.forEach(pageData => {
-                container.appendChild(createPageElement(pageData));
-                renderPageBlocks(pageData.id);
-            });
-            document.getElementById('pageCount').value = state.pages.length;
-            updatePageSizes();
-        } else {
-            alert('至少需要保留一页！');
-        }
+function getPageData(pageId, side) {
+    if (side === 'front') {
+        return state.trifold.front.find(p => p.id === pageId);
+    } else if (side === 'back') {
+        return state.trifold.back.find(p => p.id === pageId);
     }
+    return null;
+}
+
+function getPageDataById(pageId) {
+    return [...state.trifold.front, ...state.trifold.back].find(p => p.id === pageId);
+}
+
+function updatePageSizes() {
+    const pages = document.querySelectorAll('.page');
+    const pxWidth = state.pageWidth * 3.78;
+    const pxHeight = state.pageHeight * 3.78;
     
+    pages.forEach(page => {
+        page.style.width = `${pxWidth}px`;
+        page.style.minHeight = `${pxHeight}px`;
+    });
+}
+
+document.addEventListener('click', (e) => {
     if (e.target.classList.contains('export-page-btn')) {
         const pageId = parseInt(e.target.dataset.pageId);
         exportHtml(pageId);
